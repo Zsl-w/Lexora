@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="560" viewBox="0 0 1280 560" role="img" aria-labelledby="title description">
+  <title id="title">Lexora contextual reading</title>
+  <desc id="description">A compact Lexora reading assistant explaining a selected technical term in context.</desc>
+  <rect width="1280" height="560" fill="#f7f8fc"/>
+  <rect x="32" y="32" width="1216" height="496" rx="28" fill="#ffffff" stroke="#e1e4ee" stroke-width="2"/>
+  <g transform="translate(104 116)">
+    <rect width="88" height="88" rx="24" fill="#ffffff" stroke="#e1e4ee" stroke-width="2"/>
+    <path d="M24 24h17v34h26v16H24z" fill="#252b3d"/>
+    <path d="M47 25c18 0 26 10 26 29v21H47z" fill="#252b3d"/>
+    <path d="M20 68c17 13 36 18 55 0" fill="none" stroke="#252b3d" stroke-width="5" stroke-linecap="round"/>
+    <path d="M64 19l4 8 8 4-8 4-4 8-4-8-8-4 8-4z" fill="#5a67d8"/>
+  </g>
+  <text x="220" y="154" fill="#171b27" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="62" font-weight="700">Lexora</text>
+  <text x="222" y="202" fill="#697386" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="26">Contextual explanation for technical reading</text>
+  <line x1="104" y1="258" x2="1176" y2="258" stroke="#e8eaf1" stroke-width="2"/>
+  <g transform="translate(104 304)">
+    <text x="0" y="0" fill="#858da0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="22">Selected in a paper</text>
+    <rect x="0" y="26" width="414" height="70" rx="14" fill="#f1f2ff"/>
+    <text x="24" y="70" fill="#3e4ba9" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="30" font-weight="650">transformer</text>
+    <text x="0" y="146" fill="#9aa1b1" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="20">Click L 解读 to keep reading</text>
+  </g>
+  <g transform="translate(612 288)">
+    <rect width="534" height="184" rx="22" fill="#ffffff" stroke="#dfe2ed" stroke-width="2"/>
+    <circle cx="38" cy="42" r="19" fill="#5a67d8"/>
+    <text x="32" y="50" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="24" font-weight="700">L</text>
+    <text x="72" y="50" fill="#202536" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="25" font-weight="650">transformer</text>
+    <text x="72" y="82" fill="#737b8c" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="19">Transformer（转换器架构）</text>
+    <line x1="28" y1="106" x2="506" y2="106" stroke="#e9ebf2" stroke-width="2"/>
+    <text x="28" y="143" fill="#252b3d" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="20">一种以注意力机制建模序列关系的神经网络架构。</text>
+    <text x="28" y="169" fill="#70788a" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="17">一句话 · 简明 · 深入</text>
+  </g>
+  <text x="104" y="500" fill="#5a67d8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="21" font-weight="600">Select · Understand · Continue reading</text>
+</svg>
