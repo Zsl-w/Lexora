@@ -1,0 +1,11 @@
+{
+  "name": "lexora-recovered",
+  "version": "0.8.7",
+  "private": true,
+  "type": "module",
+  "description": "Recovered Lexora Chrome extension baseline.",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "verify": "node scripts/verify.mjs"
+  }
+}
