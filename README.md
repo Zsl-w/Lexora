@@ -1,5 +1,7 @@
 # Lexora
 
+[中文说明](README.zh-CN.md)
+
 > Read a technical term in context — without leaving the page.
 
 Lexora is a lightweight Chrome browser extension for understanding specialised terms while reading. Select a word, acronym, phrase, or sentence on a page, then open **L 解读** to get a contextual explanation rather than a bare translation.
@@ -82,4 +84,4 @@ Built by [十月七 · TemporalSync](https://temporalsync.online/).
 
 ## License
 
-This repository is currently published for public beta evaluation. A dedicated open-source license has not yet been selected.
+Licensed under the [Apache License 2.0](LICENSE). This license applies to Lexora-owned source and documentation in this repository; third-party components remain subject to their own licenses.
