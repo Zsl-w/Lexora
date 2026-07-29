@@ -9,6 +9,7 @@
     "build:baseline": "node scripts/build.mjs",
     "dev": "wxt",
     "typecheck": "tsc --noEmit",
+    "verify:rebuild": "node scripts/verify-rebuild.mjs",
     "verify": "node scripts/verify.mjs"
   }
 }

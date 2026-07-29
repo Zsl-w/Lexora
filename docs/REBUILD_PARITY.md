@@ -26,6 +26,7 @@
 npm run typecheck
 npm run build
 npm run verify
+npm run verify:rebuild
 ```
 
 浏览器回归必须加载 `.output/chrome-mv3/`，并在普通网页、搜索框输入框、医学术语和 AI 术语上完成验证。未完成这些测试前，不应把重建版标为可发布版本。
