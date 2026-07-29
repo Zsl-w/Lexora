@@ -1,5 +1,6 @@
 import { defineBackground } from 'wxt/utils/define-background';
-import { defaultSettings, explainSelection } from '../src-rebuild/background/deepseek';
+import { chatAboutTerm, defaultSettings, explainSelection } from '../src-rebuild/background/deepseek';
+import { retrieveSources } from '../src-rebuild/background/source-search';
 import type { LexoraSettings, RuntimeRequest, RuntimeResponse } from '../src-rebuild/shared/types';
 
 const SETTINGS_KEY = 'lexora-settings';
@@ -25,6 +26,17 @@ export default defineBackground(() => {
         if (request.type === 'LOOKUP_CORE') {
           const result = await explainSelection(request.draft, request.preference, await getSettings());
           sendResponse({ ok: true, result } satisfies RuntimeResponse);
+          return;
+        }
+        if (request.type === 'LOOKUP_DEEP') {
+          const sources = await retrieveSources(request.searchTerm || request.draft.term, request.draft.context, request.preference);
+          const result = await explainSelection(request.draft, request.preference, await getSettings(), sources, true);
+          sendResponse({ ok: true, result } satisfies RuntimeResponse);
+          return;
+        }
+        if (request.type === 'TERM_CHAT') {
+          const reply = await chatAboutTerm(request.draft, request.preference, await getSettings(), request.sources, request.conversation);
+          sendResponse({ ok: true, reply } satisfies RuntimeResponse);
         }
       } catch (error) {
         const candidate = error as Error & { code?: RuntimeResponse extends { code?: infer C } ? C : never };

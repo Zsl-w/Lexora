@@ -18,7 +18,7 @@ const css = `
   .lexora-icon { display:grid; width:34px; height:34px; place-items:center; border:0; border-radius:10px; background:transparent; color:#696e7a; font-size:20px; cursor:pointer; }
   .lexora-icon:hover { background:#f3f4f8; } .lexora-icon.is-pinned { background:#eef0ff; color:#5363c8; }
   .lexora-body { padding:20px 22px 18px; }
-  .lexora-term { margin:0; font-size:29px; line-height:1.18; letter-spacing:-.04em; overflow-wrap:anywhere; }
+  .lexora-term-row { display:flex; align-items:flex-start; gap:8px; }.lexora-term { flex:1; margin:0; font-size:29px; line-height:1.18; letter-spacing:-.04em; overflow-wrap:anywhere; }.lexora-speech{display:grid;width:32px;height:32px;place-items:center;border:1px solid #e2e5ed;border-radius:9px;background:#fff;color:#626978;cursor:pointer}.lexora-speech:hover,.lexora-speech.is-speaking{background:#eef0ff;color:#5363c8;border-color:#d9dcf8}
   .lexora-canonical { margin:10px 0 18px; color:#717684; font-size:16px; line-height:1.5; }
   .lexora-tabs { display:grid; grid-template-columns:repeat(3, 1fr); margin:0 -22px 18px; border-top:1px solid #eceef3; border-bottom:1px solid #eceef3; }
   .lexora-tabs button { padding:13px 0 11px; border:0; border-bottom:3px solid transparent; background:transparent; color:#737887; font:inherit; font-weight:650; cursor:pointer; }
@@ -56,7 +56,7 @@ function textSelection(): SelectionDraft | null {
     const term = active.value.slice(start, end).trim();
     if (!term) return null;
     const box = active.getBoundingClientRect();
-    return { term, context: active.value.slice(Math.max(0, start - 280), Math.min(active.value.length, end + 280)), rect: { left: box.left, top: box.top, right: box.right, bottom: box.bottom } };
+    return { term, context: active.value.slice(Math.max(0, start - 280), Math.min(active.value.length, end + 280)), rect: { left: box.left, top: box.top, right: box.right, bottom: box.bottom }, selectionMode: selectionMode(term) };
   }
   const selection = window.getSelection();
   if (!selection || selection.isCollapsed) return null;
@@ -69,7 +69,32 @@ function textSelection(): SelectionDraft | null {
   const pageText = document.body?.innerText || '';
   const needle = pageText.indexOf(term);
   const context = needle >= 0 ? pageText.slice(Math.max(0, needle - 320), Math.min(pageText.length, needle + term.length + 320)) : term;
-  return { term, context, rect: { left: box.left, top: box.top, right: box.right, bottom: box.bottom } };
+  return { term, context, rect: { left: box.left, top: box.top, right: box.right, bottom: box.bottom }, selectionMode: selectionMode(term) };
+}
+
+function selectionMode(term: string): 'term' | 'sentence' | 'multi' {
+  if (/[;；\n]|(?:\s*,\s*){2,}|(?:、).+(?:、)/.test(term)) return 'multi';
+  if (term.length > 90 || /[。！？.!?]$/.test(term)) return 'sentence';
+  return 'term';
+}
+
+function markdownFragment(text: string, sources: Array<{ id: number; url: string }>): DocumentFragment {
+  const fragment = document.createDocumentFragment();
+  const byId = new Map(sources.map((source) => [source.id, source]));
+  const appendInline = (target: HTMLElement, value: string) => {
+    value.split(/(\[\[\d+\]\]|\*\*[^*]+\*\*|`[^`]+`)/g).filter(Boolean).forEach((part) => {
+      const citation = part.match(/^\[\[(\d+)\]\]$/); const strong = part.match(/^\*\*([\s\S]+)\*\*$/); const code = part.match(/^`([\s\S]+)`$/);
+      if (citation && byId.has(Number(citation[1]))) { const link = document.createElement('a'); link.href = `#lexora-source-${citation[1]}`; link.textContent = `[${citation[1]}]`; link.title = '跳转到来源'; target.append(link); }
+      else if (strong) { const node = document.createElement('strong'); node.textContent = strong[1]; target.append(node); }
+      else if (code) { const node = document.createElement('code'); node.textContent = code[1]; target.append(node); }
+      else target.append(document.createTextNode(part));
+    });
+  };
+  text.split(/\n{2,}/).filter(Boolean).forEach((block) => {
+    if (/^(?:[-*] )/m.test(block)) { const list = document.createElement('ul'); block.split('\n').filter(Boolean).forEach((line) => { const item = document.createElement('li'); appendInline(item, line.replace(/^[-*] /, '')); list.append(item); }); fragment.append(list); }
+    else { const paragraph = document.createElement('p'); appendInline(paragraph, block.replace(/\n/g, ' ')); fragment.append(paragraph); }
+  });
+  return fragment;
 }
 
 export default defineContentScript({
@@ -87,10 +112,16 @@ export default defineContentScript({
     let view: View = 'hidden';
     let draft: SelectionDraft | null = null;
     let result: ExplanationResult | null = null;
+    let deepResult: ExplanationResult | null = null;
+    let deepLoading = false;
+    let chatMessages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+    let chatPending = false;
+    let speaking = false;
     let tab: Tab = 'oneLine';
     let preference: DomainPreference = 'auto';
     let pinned = false;
     let panelPosition: { left: number; top: number } | null = null;
+    let queuedDraft: SelectionDraft | null = null;
     let selectionTimer = 0;
 
     const hide = () => { if (!pinned) { view = 'hidden'; draft = null; render(); } };
@@ -99,17 +130,54 @@ export default defineContentScript({
 
     async function lookup() {
       if (!draft) return;
-      view = 'loading'; result = null; tab = 'oneLine'; panelPosition ??= panelStart(draft); render();
+      view = 'loading'; result = null; deepResult = null; chatMessages = []; tab = 'oneLine'; panelPosition ??= panelStart(draft); render();
       const response = await runtimeMessage({ type: 'LOOKUP_CORE', draft, preference });
       if (!response.ok) { view = 'error'; render(response.error, response.code); return; }
       if (!('result' in response)) { view = 'error'; render('Lexora 后台返回了无效结果，请重试。'); return; }
       result = response.result; view = 'result'; render();
     }
 
+    async function lookupDeep() {
+      if (!draft || deepLoading) return;
+      deepLoading = true; tab = 'deep'; render();
+      const response = await runtimeMessage({ type: 'LOOKUP_DEEP', draft, preference, searchTerm: result?.canonicalNameEn || draft.term });
+      deepLoading = false;
+      if (!response.ok) { render(response.error, response.code); return; }
+      if ('result' in response) deepResult = response.result;
+      render();
+    }
+
+    async function sendChat(form: HTMLFormElement) {
+      if (!draft || !result || chatPending) return;
+      const input = form.querySelector<HTMLInputElement>('input'); const question = input?.value.trim();
+      if (!question) return;
+      chatMessages = [...chatMessages, { role: 'user' as const, content: question }].slice(-10); chatPending = true; if (input) input.value = ''; render();
+      const response = await runtimeMessage({ type: 'TERM_CHAT', draft, preference, sources: (deepResult || result).sources, conversation: chatMessages });
+      chatPending = false;
+      if (response.ok && 'reply' in response) chatMessages = [...chatMessages, { role: 'assistant' as const, content: response.reply }];
+      else if (!response.ok) chatMessages = [...chatMessages, { role: 'assistant' as const, content: `暂时无法回答：${response.error}` }];
+      render();
+    }
+
+    async function speakTerm() {
+      if (!draft || !('speechSynthesis' in window)) return;
+      if (speaking) { speechSynthesis.cancel(); speaking = false; render(); return; }
+      const response = await runtimeMessage({ type: 'GET_SETTINGS' });
+      const settings = response.ok && 'settings' in response ? response.settings : null;
+      const isChinese = /[\u3400-\u9fff]/.test(draft.term);
+      const preferred = isChinese ? settings?.chineseVoiceName : settings?.englishVoiceName;
+      const voices = speechSynthesis.getVoices();
+      const voice = voices.find((item) => item.name === preferred) || voices.find((item) => item.lang.toLowerCase().startsWith(isChinese ? 'zh' : 'en')) || null;
+      const utterance = new SpeechSynthesisUtterance(draft.term);
+      utterance.lang = isChinese ? 'zh-CN' : 'en-US'; utterance.rate = isChinese ? 0.94 : 0.9; if (voice) utterance.voice = voice;
+      speaking = true; utterance.onend = utterance.onerror = () => { speaking = false; render(); }; speechSynthesis.cancel(); speechSynthesis.speak(utterance); render();
+    }
+
     function showSelection() {
       const selection = textSelection();
       if (!selection) return;
       if (draft?.term === selection.term && view !== 'hidden') return;
+      if (pinned && view !== 'hidden') { queuedDraft = selection; render(); return; }
       draft = selection;
       if (!pinned) panelPosition = null;
       view = 'trigger';
@@ -142,7 +210,9 @@ export default defineContentScript({
       header.addEventListener('pointermove', (event) => { if (!drag || drag.pointer !== event.pointerId) return; panelPosition = { left: clamp(event.clientX - drag.x, 8, window.innerWidth - panel.offsetWidth - 8), top: clamp(event.clientY - drag.y, 8, window.innerHeight - panel.offsetHeight - 8) }; panel.style.left = `${panelPosition.left}px`; panel.style.top = `${panelPosition.top}px`; });
       header.addEventListener('pointerup', () => { drag = null; });
       const body = document.createElement('div'); body.className = 'lexora-body';
-      const title = document.createElement('h1'); title.className = 'lexora-term'; title.textContent = draft.term; body.append(title);
+      const titleRow = document.createElement('div'); titleRow.className = 'lexora-term-row';
+      const title = document.createElement('h1'); title.className = 'lexora-term'; title.textContent = draft.term;
+      const speech = document.createElement('button'); speech.className = `lexora-speech${speaking ? ' is-speaking' : ''}`; speech.type = 'button'; speech.textContent = speaking ? '■' : '♬'; speech.title = speaking ? '停止朗读' : '朗读术语'; speech.addEventListener('click', () => void speakTerm()); titleRow.append(title, speech); body.append(titleRow);
       if (view === 'loading') {
         const loading = document.createElement('div'); loading.className = 'lexora-loading'; loading.innerHTML = '<span class="lexora-dots"><i></i><i></i><i></i></span><span>正在生成一句话与简明解释…</span>'; body.append(loading);
       } else if (view === 'error') {
@@ -151,14 +221,29 @@ export default defineContentScript({
       } else if (result) {
         if (result.canonicalNameZh || result.canonicalNameEn) { const canonical = document.createElement('p'); canonical.className = 'lexora-canonical'; canonical.textContent = result.canonicalNameZh && result.canonicalNameEn ? `${result.canonicalNameZh}（${result.canonicalNameEn}）` : result.canonicalNameZh || result.canonicalNameEn; body.append(canonical); }
         const tabs = document.createElement('nav'); tabs.className = 'lexora-tabs';
-        const answers: Record<Tab, string> = { oneLine: result.oneLine, brief: result.briefIntro, deep: result.deepIntro };
-        ([['oneLine', '一句话'], ['brief', '简明'], ['deep', '深入']] as const).forEach(([key, label]) => { const button = document.createElement('button'); button.type = 'button'; button.textContent = label; button.className = tab === key ? 'is-active' : ''; button.addEventListener('click', () => { tab = key; render(); }); tabs.append(button); });
-        const answer = document.createElement('p'); answer.className = 'lexora-answer'; answer.textContent = answers[tab];
-        const note = document.createElement('p'); note.className = 'lexora-note'; note.textContent = `ⓘ ${result.confidenceReason}`;
-        body.append(tabs, answer, note);
-        const composer = document.createElement('form'); composer.className = 'lexora-composer'; composer.innerHTML = '<input aria-label="继续向 AI 提问" placeholder="继续问 AI…" disabled><button type="submit" title="重建中">→</button>'; body.append(composer);
+        const activeResult = tab === 'deep' && deepResult ? deepResult : result;
+        const answers: Record<Tab, string> = { oneLine: result.oneLine, brief: result.briefIntro, deep: activeResult.deepIntro };
+        ([['oneLine', '一句话'], ['brief', '简明'], ['deep', '深入']] as const).forEach(([key, label]) => { const button = document.createElement('button'); button.type = 'button'; button.textContent = label; button.className = tab === key ? 'is-active' : ''; button.addEventListener('click', () => { tab = key; if (key === 'deep' && !deepResult) void lookupDeep(); else render(); }); tabs.append(button); });
+        if (tab === 'deep' && deepLoading) { const loading = document.createElement('div'); loading.className = 'lexora-loading'; loading.innerHTML = '<span class="lexora-dots"><i></i><i></i><i></i></span><span>正在检索文献并生成深入解读…</span>'; body.append(tabs, loading); }
+        else {
+          const answer = document.createElement('div'); answer.className = 'lexora-answer'; answer.append(markdownFragment(answers[tab], activeResult.sources));
+          const note = document.createElement('p'); note.className = 'lexora-note'; note.textContent = `ⓘ ${activeResult.confidenceReason}`;
+          body.append(tabs, answer, note);
+          if (tab !== 'oneLine' && activeResult.relationshipSummary) { const relationship = document.createElement('p'); relationship.className = 'lexora-note'; relationship.textContent = `概念关系：${activeResult.relationshipSummary}`; body.append(relationship); }
+          if (draft.selectionMode !== 'term' && activeResult.keyConcepts.length) { const mapping = document.createElement('div'); mapping.className = 'lexora-note'; const heading = document.createElement('strong'); heading.textContent = '原文对应'; mapping.append(heading); activeResult.keyConcepts.forEach((item) => { const line = document.createElement('div'); const term = document.createElement('code'); term.textContent = item.term; line.append(document.createElement('br'), term, document.createTextNode(`：${item.explanation}`)); mapping.append(line); }); body.append(mapping); }
+          if (tab === 'deep') {
+            if (activeResult.sources.length) { const sources = document.createElement('details'); sources.className = 'lexora-note'; sources.open = true; sources.innerHTML = `<summary>来源 ${activeResult.sources.length}</summary>`; const list = document.createElement('ol'); activeResult.sources.forEach((source) => { const item = document.createElement('li'); item.id = `lexora-source-${source.id}`; const link = document.createElement('a'); link.href = source.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = source.title; item.append(link, document.createTextNode(` · ${[source.authors[0], source.venue, source.year].filter(Boolean).join(' · ')}`)); list.append(item); }); sources.append(list); body.append(sources); }
+            else { const noSources = document.createElement('p'); noSources.className = 'lexora-note'; noSources.textContent = '暂未检索到足够相关的可信来源，本次深入解读未添加引文。'; body.append(noSources); }
+          }
+          if (chatMessages.length) { const chat = document.createElement('div'); chat.className = 'lexora-note'; chatMessages.forEach((message) => { const line = document.createElement('div'); const author = document.createElement('strong'); author.textContent = `${message.role === 'user' ? '你' : 'Lexora'}：`; line.append(author, markdownFragment(message.content, activeResult.sources)); chat.append(line); }); if (chatPending) chat.insertAdjacentHTML('beforeend', '<p><strong>Lexora：</strong>正在思考…</p>'); body.append(chat); }
+          const composer = document.createElement('form'); composer.className = 'lexora-composer'; composer.innerHTML = `<input aria-label="继续向 AI 提问" placeholder="继续问 AI…" ${chatPending ? 'disabled' : ''}><button type="submit">→</button>`; composer.addEventListener('submit', (event) => { event.preventDefault(); void sendChat(composer); }); body.append(composer);
+        }
       }
       panel.append(body); root.append(panel); panel.focus({ preventScroll: true });
+      if (pinned && queuedDraft) {
+        const next = document.createElement('button'); next.className = 'lexora-trigger'; next.type = 'button'; const queuedPos = triggerPosition(queuedDraft); next.style.left = `${queuedPos.left}px`; next.style.top = `${queuedPos.top}px`; next.innerHTML = '<span>L</span>解读'; next.title = `用 Lexora 解读 ${queuedDraft.term}`;
+        next.addEventListener('click', () => { const nextDraft = queuedDraft; if (!nextDraft) return; draft = nextDraft; queuedDraft = null; result = null; deepResult = null; chatMessages = []; panelPosition = panelStart(nextDraft); void lookup(); }); root.append(next);
+      }
     }
 
     document.addEventListener('pointerup', () => window.clearTimeout(selectionTimer), true);
