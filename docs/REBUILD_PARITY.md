@@ -8,7 +8,7 @@
 | 网页和输入框划词 | `entrypoints/content.ts` 的 `textSelection` | TypeScript 构建通过 | Wikipedia 正文与搜索框实测通过 |
 | 单术语、句子、多概念模式 | `selectionMode`、提示词、`keyConcepts` | TypeScript 构建通过 | 待测 |
 | 划词末尾下方 L 解读入口 | `triggerPosition` | TypeScript 构建通过 | Wikipedia 正文与搜索框实测通过 |
-| 浮窗右下侧出现、拖动、固定、关闭、失焦隐藏 | `panelStart`、拖动状态、`pinned` | TypeScript 构建通过 | 出现位置与固定实测通过；拖动、关闭、失焦隐藏待测 |
+| 浮窗右下侧出现、拖动、固定、关闭、失焦隐藏 | `panelStart`、拖动状态、`pinned` | TypeScript 构建通过 | 出现位置、固定、关闭实测通过；拖动、失焦隐藏待测 |
 | 固定窗口后可继续划词 | `queuedDraft` | TypeScript 构建通过 | 实测通过：固定后产生第二个 L 解读入口 |
 | 一句话与简明快速返回 | `LOOKUP_CORE`、快速提示词、12 小时缓存 | TypeScript 构建通过 | Transformer 一句话实测返回 |
 | 点击 L 解读后并行检索来源，打开“深入”时优先展示结果 | `LOOKUP_DEEP`、`lookupDeep`、`retrieveSources` | TypeScript 构建通过 | Transformer 实测：进入深入页无二次等待且有来源 |
