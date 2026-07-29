@@ -114,6 +114,7 @@ export default defineContentScript({
     let result: ExplanationResult | null = null;
     let deepResult: ExplanationResult | null = null;
     let deepLoading = false;
+    let deepError: string | null = null;
     let chatMessages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
     let chatPending = false;
     let speaking = false;
@@ -130,7 +131,7 @@ export default defineContentScript({
 
     async function lookup() {
       if (!draft) return;
-      view = 'loading'; result = null; deepResult = null; chatMessages = []; tab = 'oneLine'; panelPosition ??= panelStart(draft); render();
+      view = 'loading'; result = null; deepResult = null; deepError = null; chatMessages = []; tab = 'oneLine'; panelPosition ??= panelStart(draft); render();
       const response = await runtimeMessage({ type: 'LOOKUP_CORE', draft, preference });
       if (!response.ok) { view = 'error'; render(response.error, response.code); return; }
       if (!('result' in response)) { view = 'error'; render('Lexora 后台返回了无效结果，请重试。'); return; }
@@ -139,10 +140,11 @@ export default defineContentScript({
 
     async function lookupDeep() {
       if (!draft || deepLoading) return;
-      deepLoading = true; tab = 'deep'; render();
-      const response = await runtimeMessage({ type: 'LOOKUP_DEEP', draft, preference, searchTerm: result?.canonicalNameEn || draft.term });
+      deepLoading = true; deepError = null; tab = 'deep'; render();
+      const sourcePreference: DomainPreference = result?.domain === 'medicine' || result?.domain === 'ai' ? result.domain : preference;
+      const response = await runtimeMessage({ type: 'LOOKUP_DEEP', draft, preference: sourcePreference, searchTerm: result?.canonicalNameEn || draft.term });
       deepLoading = false;
-      if (!response.ok) { render(response.error, response.code); return; }
+      if (!response.ok) { deepError = response.error; render(); return; }
       if ('result' in response) deepResult = response.result;
       render();
     }
@@ -232,7 +234,8 @@ export default defineContentScript({
           if (tab !== 'oneLine' && activeResult.relationshipSummary) { const relationship = document.createElement('p'); relationship.className = 'lexora-note'; relationship.textContent = `概念关系：${activeResult.relationshipSummary}`; body.append(relationship); }
           if (draft.selectionMode !== 'term' && activeResult.keyConcepts.length) { const mapping = document.createElement('div'); mapping.className = 'lexora-note'; const heading = document.createElement('strong'); heading.textContent = '原文对应'; mapping.append(heading); activeResult.keyConcepts.forEach((item) => { const line = document.createElement('div'); const term = document.createElement('code'); term.textContent = item.term; line.append(document.createElement('br'), term, document.createTextNode(`：${item.explanation}`)); mapping.append(line); }); body.append(mapping); }
           if (tab === 'deep') {
-            if (activeResult.sources.length) { const sources = document.createElement('details'); sources.className = 'lexora-note'; sources.open = true; sources.innerHTML = `<summary>来源 ${activeResult.sources.length}</summary>`; const list = document.createElement('ol'); activeResult.sources.forEach((source) => { const item = document.createElement('li'); item.id = `lexora-source-${source.id}`; const link = document.createElement('a'); link.href = source.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = source.title; item.append(link, document.createTextNode(` · ${[source.authors[0], source.venue, source.year].filter(Boolean).join(' · ')}`)); list.append(item); }); sources.append(list); body.append(sources); }
+            if (deepError) { const failed = document.createElement('p'); failed.className = 'lexora-note'; failed.textContent = `文献增强暂时不可用，先显示基础解释。${deepError}`; body.append(failed); }
+            else if (activeResult.sources.length) { const sources = document.createElement('details'); sources.className = 'lexora-note'; sources.open = true; sources.innerHTML = `<summary>来源 ${activeResult.sources.length}</summary>`; const list = document.createElement('ol'); activeResult.sources.forEach((source) => { const item = document.createElement('li'); item.id = `lexora-source-${source.id}`; const link = document.createElement('a'); link.href = source.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = source.title; item.append(link, document.createTextNode(` · ${[source.authors[0], source.venue, source.year].filter(Boolean).join(' · ')}`)); list.append(item); }); sources.append(list); body.append(sources); }
             else { const noSources = document.createElement('p'); noSources.className = 'lexora-note'; noSources.textContent = '暂未检索到足够相关的可信来源，本次深入解读未添加引文。'; body.append(noSources); }
           }
           if (chatMessages.length) { const chat = document.createElement('div'); chat.className = 'lexora-note'; chatMessages.forEach((message) => { const line = document.createElement('div'); const author = document.createElement('strong'); author.textContent = `${message.role === 'user' ? '你' : 'Lexora'}：`; line.append(author, markdownFragment(message.content, activeResult.sources)); chat.append(line); }); if (chatPending) chat.insertAdjacentHTML('beforeend', '<p><strong>Lexora：</strong>正在思考…</p>'); body.append(chat); }

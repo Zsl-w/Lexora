@@ -19,7 +19,7 @@ export default defineConfig({
       96: 'icon/96.png',
       128: 'icon/128.png',
     },
-    action: { default_title: 'Lexora' },
+    action: { default_title: 'Lexora', default_popup: 'popup.html' },
     options_ui: { page: 'options.html', open_in_tab: true },
   },
 });

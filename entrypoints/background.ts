@@ -4,6 +4,12 @@ import { retrieveSources } from '../src-rebuild/background/source-search';
 import type { LexoraSettings, RuntimeRequest, RuntimeResponse } from '../src-rebuild/shared/types';
 
 const SETTINGS_KEY = 'lexora-settings';
+const CORE_CACHE_TTL = 12 * 60 * 60 * 1000;
+const coreCache = new Map<string, { expiresAt: number; result: import('../src-rebuild/shared/types').ExplanationResult }>();
+
+function cacheKey(term: string, context: string, preference: string) {
+  return `${preference}\u0000${term}\u0000${context.slice(0, 1000)}`;
+}
 
 async function getSettings(): Promise<LexoraSettings> {
   const stored = await chrome.storage.local.get(SETTINGS_KEY);
@@ -24,7 +30,10 @@ export default defineBackground(() => {
           return;
         }
         if (request.type === 'LOOKUP_CORE') {
-          const result = await explainSelection(request.draft, request.preference, await getSettings());
+          const key = cacheKey(request.draft.term, request.draft.context, request.preference);
+          const cached = coreCache.get(key);
+          const result = cached && cached.expiresAt > Date.now() ? cached.result : await explainSelection(request.draft, request.preference, await getSettings());
+          if (!cached || cached.expiresAt <= Date.now()) coreCache.set(key, { result, expiresAt: Date.now() + CORE_CACHE_TTL });
           sendResponse({ ok: true, result } satisfies RuntimeResponse);
           return;
         }

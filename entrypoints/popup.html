@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lexora</title>
+    <script type="module" src="../src-rebuild/popup/main.ts"></script>
+  </head>
+  <body>
+    <main>
+      <header><div class="brand"><span>L</span><strong>Lexora</strong></div><button id="settings" title="设置">设置</button></header>
+      <p class="tip">划词后点击 <strong>L 解读</strong>，或在这里直接查询。</p>
+      <form id="lookup"><input id="term" placeholder="输入医学或 AI 术语" maxlength="500" autofocus /><button>解读</button></form>
+      <section id="result" hidden></section>
+      <p class="boundary">仅用于医学文献理解，不用于诊断、治疗或个体化用药建议。</p>
+      <p class="refresh">首次安装或更新后，请刷新论文页面再划词。</p>
+    </main>
+  </body>
+</html>
