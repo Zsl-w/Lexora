@@ -115,6 +115,7 @@ export default defineContentScript({
     let deepResult: ExplanationResult | null = null;
     let deepLoading = false;
     let deepError: string | null = null;
+    let lookupError: { message: string; code?: string } | null = null;
     let chatMessages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
     let chatPending = false;
     let speaking = false;
@@ -123,32 +124,48 @@ export default defineContentScript({
     let pinned = false;
     let panelPosition: { left: number; top: number } | null = null;
     let queuedDraft: SelectionDraft | null = null;
-    let activeRequestId: string | null = null;
+    let coreRequestId: string | null = null;
+    let deepRequestId: string | null = null;
+    let deepPreference: DomainPreference | null = null;
     let selectionTimer = 0;
 
-    const cancelActive = () => { if (!activeRequestId) return; void runtimeMessage({ type: 'CANCEL_REQUEST', requestId: activeRequestId }, activeRequestId); activeRequestId = null; };
+    const cancelRequest = (requestId: string | null) => { if (requestId) void runtimeMessage({ type: 'CANCEL_REQUEST', requestId }, requestId); };
+    const cancelActive = () => { cancelRequest(coreRequestId); cancelRequest(deepRequestId); coreRequestId = null; deepRequestId = null; deepLoading = false; };
     const hide = () => { if (!pinned) { cancelActive(); view = 'hidden'; draft = null; render(); } };
     const triggerPosition = (selection: SelectionDraft) => ({ left: clamp(selection.rect.right - 76, 8, window.innerWidth - 88), top: clamp(selection.rect.bottom + 7, 8, window.innerHeight - 40) });
     const panelStart = (selection: SelectionDraft) => ({ left: clamp(selection.rect.right + 12, 12, window.innerWidth - 402), top: clamp(selection.rect.bottom + 12, 12, window.innerHeight - 400) });
 
     async function lookup() {
       if (!draft) return;
-      cancelActive(); const requestId = crypto.randomUUID(); activeRequestId = requestId;
-      view = 'loading'; result = null; deepResult = null; deepError = null; chatMessages = []; tab = 'oneLine'; panelPosition ??= panelStart(draft); render();
+      cancelActive(); const requestId = crypto.randomUUID(); coreRequestId = requestId;
+      view = 'loading'; result = null; deepResult = null; deepError = null; deepPreference = null; lookupError = null; chatMessages = []; tab = 'oneLine'; panelPosition ??= panelStart(draft); render();
+      void lookupDeep(inferSourcePreference(draft));
       const response = await runtimeMessage({ type: 'LOOKUP_CORE', draft, preference }, requestId);
-      if (activeRequestId !== requestId) return; activeRequestId = null;
-      if (!response.ok) { view = 'error'; render(response.error, response.code); return; }
-      if (!('result' in response)) { view = 'error'; render('Lexora 后台返回了无效结果，请重试。'); return; }
+      if (coreRequestId !== requestId) return; coreRequestId = null;
+      if (!response.ok) { lookupError = { message: response.error, code: response.code }; view = 'error'; render(); return; }
+      if (!('result' in response)) { lookupError = { message: 'Lexora 后台返回了无效结果，请重试。' }; view = 'error'; render(); return; }
       result = response.result; view = 'result'; render();
+      const resolvedPreference = inferSourcePreference(draft, result);
+      if (deepPreference !== resolvedPreference) void lookupDeep(resolvedPreference);
     }
 
-    async function lookupDeep() {
-      if (!draft || deepLoading) return;
-      cancelActive(); const requestId = crypto.randomUUID(); activeRequestId = requestId;
-      deepLoading = true; deepError = null; tab = 'deep'; render();
-      const sourcePreference: DomainPreference = result?.domain === 'medicine' || result?.domain === 'ai' ? result.domain : preference;
+    function inferSourcePreference(selection: SelectionDraft, explanation?: ExplanationResult | null): DomainPreference {
+      if (preference !== 'auto') return preference;
+      if (explanation?.domain === 'medicine' || explanation?.domain === 'ai') return explanation.domain;
+      const value = `${selection.term} ${selection.context}`.toLowerCase();
+      if (/\b(transformer|bert|gpt|llm|rag|diffusion|attention|neural network|machine learning|deep learning)\b/.test(value)) return 'ai';
+      if (/\b(rsv|antibody|antiviral|vaccine|disease|syndrome|clinical|patient|treatment|therapy|protein|virus|infection)\b|[\u4e00-\u9fff]{2,}(?:炎|症|病|抗体|疫苗|药物)/.test(value)) return 'medicine';
+      return 'auto';
+    }
+
+    async function lookupDeep(sourcePreference = inferSourcePreference(draft!, result)) {
+      if (!draft) return;
+      if (deepLoading && deepPreference === sourcePreference) return;
+      cancelRequest(deepRequestId);
+      const requestId = crypto.randomUUID(); deepRequestId = requestId;
+      deepPreference = sourcePreference; deepLoading = true; deepError = null; render();
       const response = await runtimeMessage({ type: 'LOOKUP_DEEP', draft, preference: sourcePreference, searchTerm: result?.canonicalNameEn || draft.term }, requestId);
-      if (activeRequestId !== requestId) return; activeRequestId = null;
+      if (deepRequestId !== requestId) return; deepRequestId = null;
       deepLoading = false;
       if (!response.ok) { deepError = response.error; render(); return; }
       if ('result' in response) deepResult = response.result;
@@ -159,10 +176,10 @@ export default defineContentScript({
       if (!draft || !result || chatPending) return;
       const input = form.querySelector<HTMLInputElement>('input'); const question = input?.value.trim();
       if (!question) return;
-      cancelActive(); const requestId = crypto.randomUUID(); activeRequestId = requestId;
+      cancelActive(); const requestId = crypto.randomUUID(); coreRequestId = requestId;
       chatMessages = [...chatMessages, { role: 'user' as const, content: question }].slice(-10); chatPending = true; if (input) input.value = ''; render();
       const response = await runtimeMessage({ type: 'TERM_CHAT', draft, preference, sources: (deepResult || result).sources, conversation: chatMessages }, requestId);
-      if (activeRequestId !== requestId) return; activeRequestId = null;
+      if (coreRequestId !== requestId) return; coreRequestId = null;
       chatPending = false;
       if (response.ok && 'reply' in response) chatMessages = [...chatMessages, { role: 'assistant' as const, content: response.reply }];
       else if (!response.ok) chatMessages = [...chatMessages, { role: 'assistant' as const, content: `暂时无法回答：${response.error}` }];
@@ -194,7 +211,7 @@ export default defineContentScript({
       render();
     }
 
-    function render(errorMessage?: string, errorCode?: string) {
+    function render() {
       root.replaceChildren();
       if (view === 'hidden' || !draft) return;
       if (view === 'trigger') {
@@ -226,8 +243,8 @@ export default defineContentScript({
       if (view === 'loading') {
         const loading = document.createElement('div'); loading.className = 'lexora-loading'; loading.innerHTML = '<span class="lexora-dots"><i></i><i></i><i></i></span><span>正在生成一句话与简明解释…</span>'; body.append(loading);
       } else if (view === 'error') {
-        const error = document.createElement('div'); error.className = 'lexora-error'; error.textContent = errorMessage || '解读失败，请重试。';
-        const retry = document.createElement('button'); retry.textContent = errorCode === 'CONFIG_MISSING' ? '打开设置' : '重新查询'; retry.addEventListener('click', () => errorCode === 'CONFIG_MISSING' ? chrome.runtime.openOptionsPage() : void lookup()); error.append(document.createElement('br'), retry); body.append(error);
+        const error = document.createElement('div'); error.className = 'lexora-error'; error.textContent = lookupError?.message || '解读失败，请重试。';
+        const retry = document.createElement('button'); retry.textContent = lookupError?.code === 'CONFIG_MISSING' ? '打开设置' : '重新查询'; retry.addEventListener('click', () => lookupError?.code === 'CONFIG_MISSING' ? chrome.runtime.openOptionsPage() : void lookup()); error.append(document.createElement('br'), retry); body.append(error);
       } else if (result) {
         if (result.canonicalNameZh || result.canonicalNameEn) { const canonical = document.createElement('p'); canonical.className = 'lexora-canonical'; canonical.textContent = result.canonicalNameZh && result.canonicalNameEn ? `${result.canonicalNameZh}（${result.canonicalNameEn}）` : result.canonicalNameZh || result.canonicalNameEn; body.append(canonical); }
         const tabs = document.createElement('nav'); tabs.className = 'lexora-tabs';

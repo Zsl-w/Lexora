@@ -11,7 +11,7 @@
 | 浮窗右下侧出现、拖动、固定、关闭、失焦隐藏 | `panelStart`、拖动状态、`pinned` | TypeScript 构建通过 | 待测 |
 | 固定窗口后可继续划词 | `queuedDraft` | TypeScript 构建通过 | 待测 |
 | 一句话与简明快速返回 | `LOOKUP_CORE`、快速提示词、12 小时缓存 | TypeScript 构建通过 | 待测 |
-| 点击深入后才检索来源 | `LOOKUP_DEEP`、`retrieveSources` | TypeScript 构建通过 | 待测 |
+| 点击 L 解读后并行检索来源，打开“深入”时优先展示结果 | `LOOKUP_DEEP`、`lookupDeep`、`retrieveSources` | TypeScript 构建通过 | 待测 |
 | 医学 PubMed、AI arXiv、Crossref 回退 | `source-search.ts` | PubMed/Crossref GET 实测 200；arXiv 有回退逻辑 | 待测 |
 | 文内 `[[n]]` 与来源链接 | `markdownFragment`、来源列表 | TypeScript 构建通过 | 待测 |
 | 在浮窗内继续追问 | `TERM_CHAT`、`sendChat` | TypeScript 构建通过 | 待测 |
