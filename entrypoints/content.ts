@@ -247,7 +247,7 @@ export default defineContentScript({
         const loading = document.createElement('div'); loading.className = 'lexora-loading'; loading.innerHTML = '<span class="lexora-dots"><i></i><i></i><i></i></span><span>正在生成一句话与简明解释…</span>'; body.append(loading);
       } else if (view === 'error') {
         const error = document.createElement('div'); error.className = 'lexora-error'; error.textContent = lookupError?.message || '解读失败，请重试。';
-        const retry = document.createElement('button'); retry.textContent = lookupError?.code === 'CONFIG_MISSING' ? '打开设置' : '重新查询'; retry.addEventListener('click', () => lookupError?.code === 'CONFIG_MISSING' ? chrome.runtime.openOptionsPage() : void lookup()); error.append(document.createElement('br'), retry); body.append(error);
+        const retry = document.createElement('button'); retry.textContent = lookupError?.code === 'CONFIG_MISSING' ? '打开设置' : '重新查询'; retry.addEventListener('click', () => lookupError?.code === 'CONFIG_MISSING' ? void runtimeMessage({ type: 'OPEN_OPTIONS' }) : void lookup()); error.append(document.createElement('br'), retry); body.append(error);
       } else if (result) {
         if (result.canonicalNameZh || result.canonicalNameEn) { const canonical = document.createElement('p'); canonical.className = 'lexora-canonical'; canonical.textContent = result.canonicalNameZh && result.canonicalNameEn ? `${result.canonicalNameZh}（${result.canonicalNameEn}）` : result.canonicalNameZh || result.canonicalNameEn; body.append(canonical); }
         const tabs = document.createElement('nav'); tabs.className = 'lexora-tabs';

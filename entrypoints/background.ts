@@ -85,6 +85,11 @@ export default defineBackground(() => {
           sendResponse({ ok: true } satisfies RuntimeResponse);
           return;
         }
+        if (request.type === 'OPEN_OPTIONS') {
+          await chrome.runtime.openOptionsPage();
+          sendResponse({ ok: true } satisfies RuntimeResponse);
+          return;
+        }
         if (request.type === 'LOOKUP_CORE') {
           const key = cacheKey(request.draft.term, request.draft.context, request.preference);
           const cached = coreCache.get(key);

@@ -50,6 +50,7 @@ export type RuntimeRequest = { requestId?: string } & (
   | { type: 'TERM_CHAT'; draft: SelectionDraft; preference: DomainPreference; sources: AcademicSource[]; conversation: Array<{ role: 'user' | 'assistant'; content: string }> }
   | { type: 'VERIFY_API_KEY'; apiKey: string }
   | { type: 'DELETE_API_KEY' }
+  | { type: 'OPEN_OPTIONS' }
   | { type: 'GET_SETTINGS' }
   | { type: 'SAVE_SETTINGS'; settings: LexoraSettings }
   | { type: 'CANCEL_REQUEST' }
