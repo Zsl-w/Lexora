@@ -29,6 +29,17 @@ export default defineBackground(() => {
           sendResponse({ ok: true } satisfies RuntimeResponse);
           return;
         }
+        if (request.type === 'VERIFY_API_KEY') {
+          const response = await fetch('https://api.deepseek.com/models', { headers: { Authorization: `Bearer ${request.apiKey.trim()}` } });
+          if (!response.ok) throw Object.assign(new Error(response.status === 401 ? 'DeepSeek API Key 无效。' : `DeepSeek 验证失败（${response.status}）。`), { code: 'NETWORK' });
+          sendResponse({ ok: true } satisfies RuntimeResponse);
+          return;
+        }
+        if (request.type === 'DELETE_API_KEY') {
+          const settings = await getSettings(); settings.apiKey = ''; await chrome.storage.local.set({ [SETTINGS_KEY]: settings });
+          sendResponse({ ok: true } satisfies RuntimeResponse);
+          return;
+        }
         if (request.type === 'LOOKUP_CORE') {
           const key = cacheKey(request.draft.term, request.draft.context, request.preference);
           const cached = coreCache.get(key);

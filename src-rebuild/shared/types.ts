@@ -46,6 +46,8 @@ export type RuntimeRequest =
   | { type: 'LOOKUP_CORE'; draft: SelectionDraft; preference: DomainPreference }
   | { type: 'LOOKUP_DEEP'; draft: SelectionDraft; preference: DomainPreference; searchTerm?: string }
   | { type: 'TERM_CHAT'; draft: SelectionDraft; preference: DomainPreference; sources: AcademicSource[]; conversation: Array<{ role: 'user' | 'assistant'; content: string }> }
+  | { type: 'VERIFY_API_KEY'; apiKey: string }
+  | { type: 'DELETE_API_KEY' }
   | { type: 'GET_SETTINGS' }
   | { type: 'SAVE_SETTINGS'; settings: LexoraSettings };
 

@@ -15,9 +15,10 @@
         <form id="settings-form">
           <label>DeepSeek API Key<input id="api-key" type="password" autocomplete="off" placeholder="sk-..." /></label>
           <label>模型<input id="model" type="text" value="deepseek-v4-flash" /></label>
+          <label class="consent"><input id="consent" type="checkbox" />我理解：所选内容、附近的有限上下文和主动输入的追问会发送给 DeepSeek；点击“深入”后，医学查询会访问 PubMed，AI 查询会优先访问 arXiv，必要时使用 Crossref。</label>
           <label>中文朗读音色<select id="chinese-voice"><option value="">自动选择</option></select></label>
           <label>英文朗读音色<select id="english-voice"><option value="">自动选择</option></select></label>
-          <button type="submit">保存设置</button>
+          <div class="buttons"><button type="submit">验证并保存</button><button id="delete-key" type="button">删除 Key</button></div>
           <p id="status" role="status"></p>
         </form>
         <p class="boundary">Lexora 用于专业术语阅读与学习辅助，不用于医疗诊断、治疗或个体化用药建议。</p>
