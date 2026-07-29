@@ -4,16 +4,16 @@
 
 | v0.8.7 行为 | 重建位置 | 当前证据 | 浏览器回归 |
 | --- | --- | --- | --- |
-| Manifest V3、后台、内容脚本、设置页、弹窗 | `wxt.config.ts`、`entrypoints/` | `npm run build` 生成全部入口 | 待测 |
-| 网页和输入框划词 | `entrypoints/content.ts` 的 `textSelection` | TypeScript 构建通过 | 待测 |
+| Manifest V3、后台、内容脚本、设置页、弹窗 | `wxt.config.ts`、`entrypoints/` | `npm run build` 生成全部入口 | 网页内容脚本实测通过；弹窗、设置页待单独核验 |
+| 网页和输入框划词 | `entrypoints/content.ts` 的 `textSelection` | TypeScript 构建通过 | Wikipedia 正文与搜索框实测通过 |
 | 单术语、句子、多概念模式 | `selectionMode`、提示词、`keyConcepts` | TypeScript 构建通过 | 待测 |
-| 划词末尾下方 L 解读入口 | `triggerPosition` | TypeScript 构建通过 | 待测 |
-| 浮窗右下侧出现、拖动、固定、关闭、失焦隐藏 | `panelStart`、拖动状态、`pinned` | TypeScript 构建通过 | 待测 |
-| 固定窗口后可继续划词 | `queuedDraft` | TypeScript 构建通过 | 待测 |
-| 一句话与简明快速返回 | `LOOKUP_CORE`、快速提示词、12 小时缓存 | TypeScript 构建通过 | 待测 |
-| 点击 L 解读后并行检索来源，打开“深入”时优先展示结果 | `LOOKUP_DEEP`、`lookupDeep`、`retrieveSources` | TypeScript 构建通过 | 待测 |
+| 划词末尾下方 L 解读入口 | `triggerPosition` | TypeScript 构建通过 | Wikipedia 正文与搜索框实测通过 |
+| 浮窗右下侧出现、拖动、固定、关闭、失焦隐藏 | `panelStart`、拖动状态、`pinned` | TypeScript 构建通过 | 出现位置与固定实测通过；拖动、关闭、失焦隐藏待测 |
+| 固定窗口后可继续划词 | `queuedDraft` | TypeScript 构建通过 | 实测通过：固定后产生第二个 L 解读入口 |
+| 一句话与简明快速返回 | `LOOKUP_CORE`、快速提示词、12 小时缓存 | TypeScript 构建通过 | Transformer 一句话实测返回 |
+| 点击 L 解读后并行检索来源，打开“深入”时优先展示结果 | `LOOKUP_DEEP`、`lookupDeep`、`retrieveSources` | TypeScript 构建通过 | Transformer 实测：进入深入页无二次等待且有来源 |
 | 医学 PubMed、AI arXiv、Crossref 回退 | `source-search.ts` | PubMed/Crossref GET 实测 200；arXiv 有回退逻辑 | 待测 |
-| 文内 `[[n]]` 与来源链接 | `markdownFragment`、来源列表 | TypeScript 构建通过 | 待测 |
+| 文内 `[[n]]` 与来源链接 | `markdownFragment`、来源列表 | TypeScript 构建通过 | Transformer 深入解读中实测显示编号与 arXiv 链接 |
 | 在浮窗内继续追问 | `TERM_CHAT`、`sendChat` | TypeScript 构建通过 | 待测 |
 | 浏览器本地朗读、中文/英文音色、试听 | 内容脚本与设置页 | TypeScript 构建通过 | 待测 |
 | DeepSeek Key 验证、知情确认、删除 | `VERIFY_API_KEY`、设置页 | TypeScript 构建通过 | 待测（需用户 Key） |
