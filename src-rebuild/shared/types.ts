@@ -28,7 +28,9 @@ export interface ExplanationResult {
   oneLine: string;
   briefIntro: string;
   deepIntro: string;
+  confidence: 'high' | 'medium' | 'insufficient';
   confidenceReason: string;
+  safetyClass: 'education' | 'medical_high_risk';
   keyConcepts: Array<{ term: string; explanation: string }>;
   relationshipSummary: string | null;
   alternativeMeanings: Array<{ label: string; domain: string; reason: string }>;
