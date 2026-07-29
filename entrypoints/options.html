@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lexora 设置</title>
+    <script type="module" src="../src-rebuild/options/main.ts"></script>
+  </head>
+  <body>
+    <main>
+      <section class="card">
+        <div class="brand"><span>L</span><strong>Lexora</strong></div>
+        <h1>连接你的 DeepSeek</h1>
+        <p class="intro">API Key 仅保存在浏览器扩展的本地存储中，用于发起术语解读请求。</p>
+        <form id="settings-form">
+          <label>DeepSeek API Key<input id="api-key" type="password" autocomplete="off" placeholder="sk-..." /></label>
+          <label>模型<input id="model" type="text" value="deepseek-v4-flash" /></label>
+          <button type="submit">保存设置</button>
+          <p id="status" role="status"></p>
+        </form>
+        <p class="boundary">Lexora 用于专业术语阅读与学习辅助，不用于医疗诊断、治疗或个体化用药建议。</p>
+      </section>
+    </main>
+  </body>
+</html>

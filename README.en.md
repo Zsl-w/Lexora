@@ -79,20 +79,23 @@ Lexora supports terminology reading and learning. It does **not** diagnose condi
 
 ## Recovery status and local development
 
-The original WXT/TypeScript source tree was accidentally deleted. This repository preserves a functional v0.8.7 recovery baseline:
+The original WXT/TypeScript source tree was accidentally deleted. `entrypoints/` and `src-rebuild/` are the new maintainable source reconstruction starting with v0.9.0; `extension-baseline/` remains the functional v0.8.7 recovery baseline used to compare behaviour.
 
 ```text
 extension-baseline/       Functional recovered extension baseline
+entrypoints/              WXT entrypoints for the reconstruction
+src-rebuild/              Rebuilt domain logic and shared types
 scripts/                  Build and verification scripts
 docs/images/              README product screenshots
 ```
 
 ```bash
-npm run verify
+npm run typecheck
 npm run build
+npm run verify
 ```
 
-The rebuilt extension is written to `.output/recovered-chrome-mv3/`; the original release artifact is never overwritten. Future work will gradually replace the recovered bundle with readable modules while verifying behavior against v0.8.7.
+The reconstruction is written to `.output/chrome-mv3/`; the v0.8.7 recovery output remains separate and is never overwritten. Future work will restore source searching, follow-up chat, and speech module by module while verifying behavior against v0.8.7.
 
 ## Feedback
 

@@ -1,11 +1,14 @@
 {
-  "name": "lexora-recovered",
-  "version": "0.8.7",
+  "name": "lexora",
+  "version": "0.9.0",
   "private": true,
   "type": "module",
-  "description": "Recovered Lexora Chrome extension baseline.",
+  "description": "Context-aware specialised-term explanations while reading.",
   "scripts": {
-    "build": "node scripts/build.mjs",
+    "build": "wxt build",
+    "build:baseline": "node scripts/build.mjs",
+    "dev": "wxt",
+    "typecheck": "tsc --noEmit",
     "verify": "node scripts/verify.mjs"
   }
 }

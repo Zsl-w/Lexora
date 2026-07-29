@@ -79,20 +79,23 @@ Lexora 用于专业术语的阅读与学习辅助，不提供疾病诊断、治�
 
 ## 开发与恢复状态
 
-原始 WXT/TypeScript 源码曾被误删。目前仓库保留的是可运行的 v0.8.7 恢复基线：
+原始 WXT/TypeScript 源码曾被误删。现在的 `entrypoints/` 与 `src-rebuild/` 是从 v0.9.0 开始重建的可维护源码；`extension-baseline/` 则保留 v0.8.7 的可运行恢复基线，用于对照行为。
 
 ```text
 extension-baseline/       可运行的扩展恢复基线
+entrypoints/              重建版的 WXT 扩展入口
+src-rebuild/              重建版的业务逻辑与共享类型
 scripts/                  构建与校验脚本
 docs/images/              README 展示图片
 ```
 
 ```bash
-npm run verify
+npm run typecheck
 npm run build
+npm run verify
 ```
 
-重新构建的扩展会输出到 `.output/recovered-chrome-mv3/`，不会覆盖原始 Release 包。后续会逐步将恢复包重建为可读模块，并以 v0.8.7 行为作为验证基线。
+重建版扩展输出到 `.output/chrome-mv3/`；v0.8.7 的恢复产物仍保留在独立目录，不会被覆盖。后续会继续以 v0.8.7 行为作为验证基线，逐个补回来源检索、追问、朗读等功能。
 
 ## 参与与反馈
 
