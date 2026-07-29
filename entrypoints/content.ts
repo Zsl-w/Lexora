@@ -260,8 +260,10 @@ export default defineContentScript({
       }
     }
 
-    document.addEventListener('pointerup', () => window.clearTimeout(selectionTimer), true);
-    document.addEventListener('selectionchange', () => { window.clearTimeout(selectionTimer); selectionTimer = window.setTimeout(showSelection, 130); }, true);
+    const scheduleSelection = (delay: number) => { window.clearTimeout(selectionTimer); selectionTimer = window.setTimeout(showSelection, delay); };
+    document.addEventListener('pointerup', () => scheduleSelection(80), true);
+    document.addEventListener('keyup', (event) => { if (event.key === 'Shift' || event.shiftKey) scheduleSelection(90); }, true);
+    document.addEventListener('selectionchange', () => scheduleSelection(150), true);
     document.addEventListener('pointerdown', (event) => { if (!host.contains(event.target as Node)) window.setTimeout(hide, 0); }, true);
     document.addEventListener('focusin', (event) => { if (!host.contains(event.target as Node) && document.activeElement !== document.body) window.setTimeout(hide, 0); }, true);
     document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { cancelActive(); pinned = false; view = 'hidden'; draft = null; panelPosition = null; render(); } });
