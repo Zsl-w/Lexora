@@ -34,13 +34,13 @@ const css = `
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));
 
-function runtimeMessage(request: RuntimeRequest): Promise<RuntimeResponse> {
+function runtimeMessage(request: RuntimeRequest, requestId = request.requestId || crypto.randomUUID()): Promise<RuntimeResponse> {
   return new Promise((resolve) => {
     if (!chrome.runtime?.id) {
       resolve({ ok: false, error: '扩展刚刚重新加载，请刷新当前页面后重试。' });
       return;
     }
-    chrome.runtime.sendMessage(request, (response: RuntimeResponse | undefined) => {
+    chrome.runtime.sendMessage({ ...request, requestId } satisfies RuntimeRequest, (response: RuntimeResponse | undefined) => {
       const error = chrome.runtime.lastError;
       if (error || !response) resolve({ ok: false, error: error?.message || '无法连接 Lexora 后台，请刷新页面后重试。' });
       else resolve(response);
@@ -123,16 +123,20 @@ export default defineContentScript({
     let pinned = false;
     let panelPosition: { left: number; top: number } | null = null;
     let queuedDraft: SelectionDraft | null = null;
+    let activeRequestId: string | null = null;
     let selectionTimer = 0;
 
-    const hide = () => { if (!pinned) { view = 'hidden'; draft = null; render(); } };
+    const cancelActive = () => { if (!activeRequestId) return; void runtimeMessage({ type: 'CANCEL_REQUEST', requestId: activeRequestId }, activeRequestId); activeRequestId = null; };
+    const hide = () => { if (!pinned) { cancelActive(); view = 'hidden'; draft = null; render(); } };
     const triggerPosition = (selection: SelectionDraft) => ({ left: clamp(selection.rect.right - 76, 8, window.innerWidth - 88), top: clamp(selection.rect.bottom + 7, 8, window.innerHeight - 40) });
     const panelStart = (selection: SelectionDraft) => ({ left: clamp(selection.rect.right + 12, 12, window.innerWidth - 402), top: clamp(selection.rect.bottom + 12, 12, window.innerHeight - 400) });
 
     async function lookup() {
       if (!draft) return;
+      cancelActive(); const requestId = crypto.randomUUID(); activeRequestId = requestId;
       view = 'loading'; result = null; deepResult = null; deepError = null; chatMessages = []; tab = 'oneLine'; panelPosition ??= panelStart(draft); render();
-      const response = await runtimeMessage({ type: 'LOOKUP_CORE', draft, preference });
+      const response = await runtimeMessage({ type: 'LOOKUP_CORE', draft, preference }, requestId);
+      if (activeRequestId !== requestId) return; activeRequestId = null;
       if (!response.ok) { view = 'error'; render(response.error, response.code); return; }
       if (!('result' in response)) { view = 'error'; render('Lexora 后台返回了无效结果，请重试。'); return; }
       result = response.result; view = 'result'; render();
@@ -140,9 +144,11 @@ export default defineContentScript({
 
     async function lookupDeep() {
       if (!draft || deepLoading) return;
+      cancelActive(); const requestId = crypto.randomUUID(); activeRequestId = requestId;
       deepLoading = true; deepError = null; tab = 'deep'; render();
       const sourcePreference: DomainPreference = result?.domain === 'medicine' || result?.domain === 'ai' ? result.domain : preference;
-      const response = await runtimeMessage({ type: 'LOOKUP_DEEP', draft, preference: sourcePreference, searchTerm: result?.canonicalNameEn || draft.term });
+      const response = await runtimeMessage({ type: 'LOOKUP_DEEP', draft, preference: sourcePreference, searchTerm: result?.canonicalNameEn || draft.term }, requestId);
+      if (activeRequestId !== requestId) return; activeRequestId = null;
       deepLoading = false;
       if (!response.ok) { deepError = response.error; render(); return; }
       if ('result' in response) deepResult = response.result;
@@ -153,8 +159,10 @@ export default defineContentScript({
       if (!draft || !result || chatPending) return;
       const input = form.querySelector<HTMLInputElement>('input'); const question = input?.value.trim();
       if (!question) return;
+      cancelActive(); const requestId = crypto.randomUUID(); activeRequestId = requestId;
       chatMessages = [...chatMessages, { role: 'user' as const, content: question }].slice(-10); chatPending = true; if (input) input.value = ''; render();
-      const response = await runtimeMessage({ type: 'TERM_CHAT', draft, preference, sources: (deepResult || result).sources, conversation: chatMessages });
+      const response = await runtimeMessage({ type: 'TERM_CHAT', draft, preference, sources: (deepResult || result).sources, conversation: chatMessages }, requestId);
+      if (activeRequestId !== requestId) return; activeRequestId = null;
       chatPending = false;
       if (response.ok && 'reply' in response) chatMessages = [...chatMessages, { role: 'assistant' as const, content: response.reply }];
       else if (!response.ok) chatMessages = [...chatMessages, { role: 'assistant' as const, content: `暂时无法回答：${response.error}` }];
@@ -205,7 +213,7 @@ export default defineContentScript({
       const actions = document.createElement('div'); actions.className = 'lexora-actions';
       const pin = document.createElement('button'); pin.className = `lexora-icon${pinned ? ' is-pinned' : ''}`; pin.type = 'button'; pin.textContent = '⚑'; pin.title = pinned ? '取消固定' : '固定在页面上'; pin.setAttribute('aria-pressed', String(pinned));
       pin.addEventListener('click', () => { pinned = !pinned; render(); });
-      const close = document.createElement('button'); close.className = 'lexora-icon'; close.type = 'button'; close.textContent = '×'; close.title = '关闭'; close.addEventListener('click', () => { pinned = false; view = 'hidden'; draft = null; panelPosition = null; render(); });
+      const close = document.createElement('button'); close.className = 'lexora-icon'; close.type = 'button'; close.textContent = '×'; close.title = '关闭'; close.addEventListener('click', () => { cancelActive(); pinned = false; view = 'hidden'; draft = null; panelPosition = null; render(); });
       actions.append(pin, close); header.append(select, actions); panel.append(header);
       let drag: { x: number; y: number; pointer: number } | null = null;
       header.addEventListener('pointerdown', (event) => { if (event.target instanceof HTMLSelectElement || event.target instanceof HTMLButtonElement) return; const rect = panel.getBoundingClientRect(); drag = { x: event.clientX - rect.left, y: event.clientY - rect.top, pointer: event.pointerId }; header.setPointerCapture(event.pointerId); });
@@ -253,6 +261,6 @@ export default defineContentScript({
     document.addEventListener('selectionchange', () => { window.clearTimeout(selectionTimer); selectionTimer = window.setTimeout(showSelection, 130); }, true);
     document.addEventListener('pointerdown', (event) => { if (!host.contains(event.target as Node)) window.setTimeout(hide, 0); }, true);
     document.addEventListener('focusin', (event) => { if (!host.contains(event.target as Node) && document.activeElement !== document.body) window.setTimeout(hide, 0); }, true);
-    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { pinned = false; view = 'hidden'; draft = null; panelPosition = null; render(); } });
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { cancelActive(); pinned = false; view = 'hidden'; draft = null; panelPosition = null; render(); } });
   },
 });

@@ -10,6 +10,7 @@ export async function explainSelection(
   settings: LexoraSettings,
   sources: AcademicSource[] = [],
   includeDeep = false,
+  signal?: AbortSignal,
 ): Promise<ExplanationResult> {
   if (!settings.apiKey.trim()) {
     throw Object.assign(new Error('请先在 Lexora 设置中配置 DeepSeek API Key。'), { code: 'CONFIG_MISSING' });
@@ -21,6 +22,7 @@ export async function explainSelection(
       Authorization: `Bearer ${settings.apiKey.trim()}`,
       'Content-Type': 'application/json',
     },
+    signal,
     body: JSON.stringify({
       model: settings.model || DEFAULT_MODEL,
       temperature: 0.2,
@@ -74,10 +76,11 @@ export async function chatAboutTerm(
   settings: LexoraSettings,
   sources: AcademicSource[],
   conversation: Array<{ role: 'user' | 'assistant'; content: string }>,
+  signal?: AbortSignal,
 ): Promise<string> {
   if (!settings.apiKey.trim()) throw Object.assign(new Error('请先在 Lexora 设置中配置 DeepSeek API Key。'), { code: 'CONFIG_MISSING' });
   const response = await fetch('https://api.deepseek.com/chat/completions', {
-    method: 'POST', headers: { Authorization: `Bearer ${settings.apiKey.trim()}`, 'Content-Type': 'application/json' },
+    method: 'POST', headers: { Authorization: `Bearer ${settings.apiKey.trim()}`, 'Content-Type': 'application/json' }, signal,
     body: JSON.stringify({ model: settings.model || DEFAULT_MODEL, temperature: 0.3, thinking: { type: 'disabled' }, messages: [
       { role: 'system', content: `你是 Lexora。围绕选中术语进行简明中文追问回答；保留关键英文词与其中文对应。医学内容仅作学习辅助。已有来源：${sources.map((source) => `[${source.id}] ${source.title}`).join('\n') || '无'}。只能在来源真正支持时引用 [[编号]]，否则不引用。` },
       { role: 'user', content: `选中内容：${draft.term}\n上下文：${draft.context}` },

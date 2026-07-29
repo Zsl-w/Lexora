@@ -15,16 +15,17 @@ const status = document.querySelector<HTMLParagraphElement>('#status')!;
 const chineseVoice = document.querySelector<HTMLSelectElement>('#chinese-voice')!;
 const englishVoice = document.querySelector<HTMLSelectElement>('#english-voice')!;
 const consent = document.querySelector<HTMLInputElement>('#consent')!;
+let savedVoiceNames: { chinese: string; english: string } = { chinese: '', english: '' };
 
 function fillVoices() {
   const voices = speechSynthesis.getVoices();
-  const fill = (select: HTMLSelectElement, prefix: string) => voices.filter((voice) => voice.lang.toLowerCase().startsWith(prefix)).forEach((voice) => { const option = document.createElement('option'); option.value = voice.name; option.textContent = `${voice.name} · ${voice.lang}`; select.append(option); });
-  fill(chineseVoice, 'zh'); fill(englishVoice, 'en');
+  const fill = (select: HTMLSelectElement, prefix: string, value: string) => { select.replaceChildren(new Option('自动选择', '')); voices.filter((voice) => voice.lang.toLowerCase().startsWith(prefix)).forEach((voice) => { const option = document.createElement('option'); option.value = voice.name; option.textContent = `${voice.name} · ${voice.lang}`; select.append(option); }); select.value = value; };
+  fill(chineseVoice, 'zh', savedVoiceNames.chinese); fill(englishVoice, 'en', savedVoiceNames.english);
 }
 fillVoices(); speechSynthesis.addEventListener('voiceschanged', fillVoices, { once: true });
 
 void message({ type: 'GET_SETTINGS' }).then((response) => {
-  if (response.ok && 'settings' in response) { key.value = response.settings.apiKey; model.value = response.settings.model; chineseVoice.value = response.settings.chineseVoiceName || ''; englishVoice.value = response.settings.englishVoiceName || ''; }
+  if (response.ok && 'settings' in response) { key.value = response.settings.apiKey; model.value = response.settings.model; savedVoiceNames = { chinese: response.settings.chineseVoiceName || '', english: response.settings.englishVoiceName || '' }; fillVoices(); }
 });
 
 document.querySelector<HTMLFormElement>('#settings-form')!.addEventListener('submit', async (event) => {

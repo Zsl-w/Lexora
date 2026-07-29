@@ -8,6 +8,7 @@ const PENDING_TERM_KEY = 'lexora-pending-term';
 const CORE_CACHE_KEY = 'lexora-core-cache';
 const CORE_CACHE_TTL = 12 * 60 * 60 * 1000;
 const coreCache = new Map<string, { expiresAt: number; result: ExplanationResult }>();
+const pendingRequests = new Map<string, AbortController>();
 
 function cacheKey(term: string, context: string, preference: string) {
   return `${preference}\u0000${term}\u0000${context.slice(0, 1000)}`;
@@ -55,6 +56,14 @@ export default defineBackground(() => {
   });
   chrome.runtime.onMessage.addListener((request: RuntimeRequest, _sender, sendResponse) => {
     void (async () => {
+      if (request.type === 'CANCEL_REQUEST') {
+        if (request.requestId) pendingRequests.get(request.requestId)?.abort();
+        if (request.requestId) pendingRequests.delete(request.requestId);
+        sendResponse({ ok: true } satisfies RuntimeResponse);
+        return;
+      }
+      const controller = request.requestId ? new AbortController() : null;
+      if (request.requestId && controller) pendingRequests.set(request.requestId, controller);
       try {
         if (request.type === 'GET_SETTINGS') {
           sendResponse({ ok: true, settings: await getSettings() } satisfies RuntimeResponse);
@@ -80,24 +89,26 @@ export default defineBackground(() => {
           const key = cacheKey(request.draft.term, request.draft.context, request.preference);
           const cached = coreCache.get(key);
           const persistent = !cached || cached.expiresAt <= Date.now() ? await readPersistentCache(key) : null;
-          const result = cached && cached.expiresAt > Date.now() ? cached.result : persistent || await explainSelection(request.draft, request.preference, await getSettings());
+          const result = cached && cached.expiresAt > Date.now() ? cached.result : persistent || await explainSelection(request.draft, request.preference, await getSettings(), [], false, controller?.signal);
           if (!cached || cached.expiresAt <= Date.now()) { coreCache.set(key, { result, expiresAt: Date.now() + CORE_CACHE_TTL }); if (!persistent) await writePersistentCache(key, result); }
           sendResponse({ ok: true, result } satisfies RuntimeResponse);
           return;
         }
         if (request.type === 'LOOKUP_DEEP') {
-          const sources = await retrieveSources(request.searchTerm || request.draft.term, request.draft.context, request.preference);
-          const result = await explainSelection(request.draft, request.preference, await getSettings(), sources, true);
+          const sources = await retrieveSources(request.searchTerm || request.draft.term, request.draft.context, request.preference, controller?.signal);
+          const result = await explainSelection(request.draft, request.preference, await getSettings(), sources, true, controller?.signal);
           sendResponse({ ok: true, result } satisfies RuntimeResponse);
           return;
         }
         if (request.type === 'TERM_CHAT') {
-          const reply = await chatAboutTerm(request.draft, request.preference, await getSettings(), request.sources, request.conversation);
+          const reply = await chatAboutTerm(request.draft, request.preference, await getSettings(), request.sources, request.conversation, controller?.signal);
           sendResponse({ ok: true, reply } satisfies RuntimeResponse);
         }
       } catch (error) {
         const candidate = error as Error & { code?: RuntimeResponse extends { code?: infer C } ? C : never };
-        sendResponse({ ok: false, error: candidate.message || '请求失败，请稍后重试。', code: candidate.code } satisfies RuntimeResponse);
+        sendResponse({ ok: false, error: candidate.name === 'AbortError' ? '请求已取消。' : candidate.message || '请求失败，请稍后重试。', code: candidate.code } satisfies RuntimeResponse);
+      } finally {
+        if (request.requestId) pendingRequests.delete(request.requestId);
       }
     })();
     return true;
