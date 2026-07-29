@@ -7,22 +7,28 @@
     <script type="module" src="../src-rebuild/options/main.ts"></script>
   </head>
   <body>
-    <main>
-      <section class="card">
-        <div class="brand"><span>L</span><strong>Lexora</strong></div>
-        <h1>连接你的 DeepSeek</h1>
-        <p class="intro">API Key 仅保存在浏览器扩展的本地存储中，用于发起术语解读请求。</p>
-        <form id="settings-form">
-          <label>DeepSeek API Key<input id="api-key" type="password" autocomplete="off" placeholder="sk-..." /></label>
-          <label>模型<input id="model" type="text" value="deepseek-v4-flash" /></label>
-          <label class="consent"><input id="consent" type="checkbox" />我理解：所选内容、附近的有限上下文和主动输入的追问会发送给 DeepSeek；点击“深入”后，医学查询会访问 PubMed，AI 查询会优先访问 arXiv，必要时使用 Crossref。</label>
-          <label>中文朗读音色<div class="voice-row"><select id="chinese-voice"><option value="">自动选择</option></select><button id="preview-chinese" type="button">试听</button></div></label>
-          <label>英文朗读音色<div class="voice-row"><select id="english-voice"><option value="">自动选择</option></select><button id="preview-english" type="button">试听</button></div></label>
-          <div class="buttons"><button type="submit">验证并保存</button><button id="delete-key" type="button">删除 Key</button></div>
-          <p id="status" role="status"></p>
-        </form>
-        <p class="boundary">Lexora 用于专业术语阅读与学习辅助，不用于医疗诊断、治疗或个体化用药建议。</p>
-      </section>
+    <main class="settings-shell">
+      <header class="settings-header">
+        <div class="brand"><img src="/icon/48.png" alt="" /><strong>Lexora</strong></div>
+        <p class="eyebrow">PREFERENCES</p>
+        <h1>让解读为你工作</h1>
+        <p class="intro">连接 DeepSeek，并选好你偏好的朗读方式。所有设置只保存在这个浏览器中。</p>
+      </header>
+      <form id="settings-form">
+        <section class="settings-section" aria-labelledby="connection-title">
+          <div class="section-heading"><div><p class="section-kicker">01 · 连接</p><h2 id="connection-title">DeepSeek</h2></div><span class="local-badge">本地保存</span></div>
+          <label class="field"><span>API Key</span><input id="api-key" type="password" autocomplete="off" placeholder="sk-..." /></label>
+          <label class="field"><span>模型</span><input id="model" type="text" value="deepseek-v4-flash" /></label>
+          <label class="consent"><input id="consent" type="checkbox" /><span>我理解：所选内容、附近的有限上下文和主动输入的追问会发送给 DeepSeek。点击“深入”后，医学查询会访问 PubMed，AI 查询会优先访问 arXiv，必要时使用 Crossref。</span></label>
+        </section>
+        <section class="settings-section" aria-labelledby="voice-title">
+          <div class="section-heading"><div><p class="section-kicker">02 · 朗读</p><h2 id="voice-title">语音偏好</h2></div><p class="section-note">使用浏览器本地语音</p></div>
+          <label class="field"><span>中文音色</span><div class="voice-row"><select id="chinese-voice"><option value="">自动选择</option></select><button id="preview-chinese" type="button">试听</button></div></label>
+          <label class="field"><span>英文音色</span><div class="voice-row"><select id="english-voice"><option value="">自动选择</option></select><button id="preview-english" type="button">试听</button></div></label>
+        </section>
+        <footer class="form-footer"><p id="status" role="status" aria-live="polite"></p><div class="buttons"><button type="submit">验证并保存</button><button id="delete-key" type="button">删除 Key</button></div></footer>
+      </form>
+      <aside class="boundary"><strong>使用边界</strong><span>Lexora 用于专业术语阅读与学习辅助，不用于医疗诊断、治疗或个体化用药建议。</span></aside>
     </main>
   </body>
 </html>
