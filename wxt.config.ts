@@ -5,7 +5,7 @@ export default defineConfig({
     name: 'Lexora',
     description: 'Context-aware explanations for specialised terms while reading.',
     version: '0.9.0',
-    permissions: ['storage'],
+    permissions: ['storage', 'contextMenus'],
     host_permissions: [
       'https://api.deepseek.com/*',
       'https://export.arxiv.org/*',
