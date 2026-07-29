@@ -99,7 +99,9 @@ function markdownFragment(text: string, sources: Array<{ id: number; url: string
 
 export default defineContentScript({
   matches: ['http://*/*', 'https://*/*'],
-  main() {
+  main(context) {
+    if (!document.documentElement) return;
+    document.querySelectorAll<HTMLElement>('[data-lexora-host]').forEach((existing) => existing.remove());
     const host = document.createElement('div');
     host.dataset.lexoraHost = 'true';
     const shadow = host.attachShadow({ mode: 'open' });
@@ -128,6 +130,7 @@ export default defineContentScript({
     let deepRequestId: string | null = null;
     let deepPreference: DomainPreference | null = null;
     let selectionTimer = 0;
+    const listeners = new AbortController();
 
     const cancelRequest = (requestId: string | null) => { if (requestId) void runtimeMessage({ type: 'CANCEL_REQUEST', requestId }, requestId); };
     const cancelActive = () => { cancelRequest(coreRequestId); cancelRequest(deepRequestId); coreRequestId = null; deepRequestId = null; deepLoading = false; };
@@ -278,11 +281,12 @@ export default defineContentScript({
     }
 
     const scheduleSelection = (delay: number) => { window.clearTimeout(selectionTimer); selectionTimer = window.setTimeout(showSelection, delay); };
-    document.addEventListener('pointerup', () => scheduleSelection(80), true);
-    document.addEventListener('keyup', (event) => { if (event.key === 'Shift' || event.shiftKey) scheduleSelection(90); }, true);
-    document.addEventListener('selectionchange', () => scheduleSelection(150), true);
-    document.addEventListener('pointerdown', (event) => { if (!host.contains(event.target as Node)) window.setTimeout(hide, 0); }, true);
-    document.addEventListener('focusin', (event) => { if (!host.contains(event.target as Node) && document.activeElement !== document.body) window.setTimeout(hide, 0); }, true);
-    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { cancelActive(); pinned = false; view = 'hidden'; draft = null; panelPosition = null; render(); } });
+    document.addEventListener('pointerup', () => scheduleSelection(80), { capture: true, signal: listeners.signal });
+    document.addEventListener('keyup', (event) => { if (event.key === 'Shift' || event.shiftKey) scheduleSelection(90); }, { capture: true, signal: listeners.signal });
+    document.addEventListener('selectionchange', () => scheduleSelection(150), { capture: true, signal: listeners.signal });
+    document.addEventListener('pointerdown', (event) => { if (!host.contains(event.target as Node)) window.setTimeout(hide, 0); }, { capture: true, signal: listeners.signal });
+    document.addEventListener('focusin', (event) => { if (!host.contains(event.target as Node) && document.activeElement !== document.body) window.setTimeout(hide, 0); }, { capture: true, signal: listeners.signal });
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { cancelActive(); pinned = false; view = 'hidden'; draft = null; panelPosition = null; render(); } }, { signal: listeners.signal });
+    context.onInvalidated(() => { window.clearTimeout(selectionTimer); cancelActive(); listeners.abort(); host.remove(); });
   },
 });
