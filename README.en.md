@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="extension-baseline/icon/128.png" width="76" alt="Lexora logo" />
+  <img src="public/icon/128.png" width="76" alt="Lexora logo" />
 </p>
 
 <h1 align="center">Lexora</h1>
@@ -7,17 +7,17 @@
 <p align="center"><strong>Read a technical term in context — without leaving the page.</strong></p>
 
 <p align="center">
-  A select-to-explain extension for medical and AI reading: contextual interpretation, not bare translation.
+  A select-to-explain browser extension for papers and professional reading: contextual interpretation, not bare translation.
 </p>
 
 <p align="center">
-  <a href="https://github.com/Zsl-w/Lexora/releases/tag/v0.8.7"><img src="https://img.shields.io/github/v/release/Zsl-w/Lexora?display_name=tag&label=release&color=5A67D8" alt="release" /></a>
+  <a href="https://github.com/Zsl-w/Lexora/releases/tag/v0.9.0"><img src="https://img.shields.io/github/v/release/Zsl-w/Lexora?display_name=tag&label=release&color=5A67D8" alt="release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-4F8A10" alt="license Apache-2.0" /></a>
   <img src="https://img.shields.io/badge/platform-Chrome-4285F4?logo=googlechrome&logoColor=white" alt="platform Chrome" />
 </p>
 
 <p align="center">
-  <a href="https://github.com/Zsl-w/Lexora/releases/download/v0.8.7/lexora-extension-0.8.7-chrome.zip"><img src="https://img.shields.io/badge/%E2%AC%87%20Download%20Lexora-v0.8.7-5A67D8?style=for-the-badge" alt="Download Lexora v0.8.7" /></a>
+  <a href="https://github.com/Zsl-w/Lexora/releases/download/v0.9.0/lexora-0.9.0-chrome.zip"><img src="https://img.shields.io/badge/%E2%AC%87%20Download%20Lexora-v0.9.0-5A67D8?style=for-the-badge" alt="Download Lexora v0.9.0" /></a>
 </p>
 
 <p align="center">
@@ -32,19 +32,19 @@
 
 ## Why Lexora?
 
-When reading a paper, the difficult part is often not translating a word but understanding what it means *here*. Does `AD` refer to a disease in this paragraph? Is `transformer` an architecture, a model, or a named method from a particular paper?
+When reading a paper, the difficult part is often not translating a word but understanding what it means *here*. Does `AD` refer to a disease in this paragraph? Is `transformer` an architecture, a specific model, or the name of a method in a paper?
 
-Lexora gives a **contextual explanation** after selection: understand the essentials quickly, then choose whether to go deeper or inspect sources.
+Lexora gives a **contextual explanation** after selection: understand the essentials quickly, then decide whether to go deeper, ask a follow-up question, or inspect sources.
 
 ## Core experience
 
-| Select and explain | Fast first, deep on demand | Bilingual mapping |
+| Select and explain | Fast first, deep when ready | Bilingual mapping |
 | :---: | :---: | :---: |
-| Select a term, acronym, phrase, sentence, or several keywords, then click **L 解读**. | A one-line answer and concise explanation appear first; open deeper interpretation only when needed. | Keep the original English term and Chinese name together. |
+| Select a term, acronym, phrase, sentence, or several keywords, then click **L 解读**. | A one-line answer and concise explanation appear first; deep interpretation and source retrieval are prepared in parallel. | Keep the original English term and Chinese name together. |
 
-| Continue the conversation | Sources when needed | Stay in the reading flow |
+| Continue the conversation | Topic-aware sources | Stay in the reading flow |
 | :---: | :---: | :---: |
-| Ask follow-up questions in the compact window without losing selection context. | Deeper interpretation searches PubMed, arXiv, and Crossref by topic. | Drag or pin the window; when unpinned, it gets out of the way after focus leaves it. |
+| Ask follow-up questions in the compact window without losing selection context. | AI topics look to arXiv first; medical topics look to PubMed first, with Crossref when useful. | Drag or pin the window; when unpinned, it gets out of the way after focus leaves it. |
 
 ## See it in use
 
@@ -57,34 +57,32 @@ Lexora gives a **contextual explanation** after selection: understand the essent
   <img src="docs/images/medical-result.jpg" alt="Lexora medical term explanation" width="47%" />
 </p>
 
-## Get started
+## Download
 
-Lexora is a Chrome browser extension. Download the package to use it while reading webpages and HTML papers.
+Lexora is an extension for Chrome and Chromium-based browsers, designed for webpages and HTML papers.
 
 <p align="center">
-  <a href="https://github.com/Zsl-w/Lexora/releases/download/v0.8.7/lexora-extension-0.8.7-chrome.zip"><strong>↓ Download v0.8.7</strong></a>
+  <a href="https://github.com/Zsl-w/Lexora/releases/download/v0.9.0/lexora-0.9.0-chrome.zip"><strong>↓ Download v0.9.0</strong></a>
   &nbsp;·&nbsp;
-  <a href="https://github.com/Zsl-w/Lexora/releases/tag/v0.8.7">Release notes</a>
+  <a href="https://github.com/Zsl-w/Lexora/releases/tag/v0.9.0">Release notes</a>
 </p>
 
 ## Model, cost, and privacy boundary
 
 Lexora uses the reader's own DeepSeek API key. The key is stored in browser extension storage and is not exposed to ordinary webpages; requests are sent by the extension background process.
 
-The current build uses `deepseek-v4-flash`. A fast answer is requested on the normal reading path. Source searching and deeper interpretation begin only after the reader chooses **深入**, reducing wait time and API use.
+The current build uses `deepseek-v4-flash`, balancing response speed and cost for reading. A one-line answer and concise explanation arrive first; deep interpretation retrieves and organizes sources in the background for readers who choose to open it.
 
 ## Medical-content boundary
 
 Lexora supports terminology reading and learning. It does **not** diagnose conditions, recommend treatment, prescribe medication, or give individual dosing advice. Medical explanations may be incomplete or uncertain and must not replace clinical judgement.
 
-## Recovery status and local development
-
-The original WXT/TypeScript source tree was accidentally deleted. `entrypoints/` and `src-rebuild/` are the new maintainable source reconstruction starting with v0.9.0; `extension-baseline/` remains the functional v0.8.7 recovery baseline used to compare behaviour.
+## Local development
 
 ```text
-extension-baseline/       Functional recovered extension baseline
-entrypoints/              WXT entrypoints for the reconstruction
-src-rebuild/              Rebuilt domain logic and shared types
+entrypoints/              WXT extension entrypoints
+src-rebuild/              Domain logic and shared types
+public/icon/              Extension icons
 scripts/                  Build and verification scripts
 docs/images/              README product screenshots
 ```
@@ -93,9 +91,10 @@ docs/images/              README product screenshots
 npm run typecheck
 npm run build
 npm run verify
+npm run verify:rebuild
 ```
 
-The reconstruction is written to `.output/chrome-mv3/`; the v0.8.7 recovery output remains separate and is never overwritten. Future work will restore source searching, follow-up chat, and speech module by module while verifying behavior against v0.8.7.
+The build output is written to `.output/chrome-mv3/`; run `npx wxt zip` to create a distributable ZIP package.
 
 ## Feedback
 
